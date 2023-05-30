@@ -1,5 +1,7 @@
 Start the development docker:
 
+(remember to update README)
+
 Make a copy of .env.example to .env, then bring up the docker compose:
 
 `./vendor/bin/sail up`
