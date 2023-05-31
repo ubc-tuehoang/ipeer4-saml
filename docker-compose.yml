@@ -17,14 +17,38 @@ services:
             LARAVEL_SAIL: 1
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
             XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+            IGNITION_LOCAL_SITES_PATH: '${PWD}'
         volumes:
             - '.:/var/www/html'
         networks:
             - sail
         depends_on:
             - mysql
+            - redis
             - mailpit
-            - selenium
+    adminer:
+        image: "adminer:4"
+        ports:
+            - "${ADMINER_PORT}:8080"
+        depends_on:
+            - mysql
+        environment:
+            ADMINER_PLUGINS: 'env-var-login'
+            DB_DRIVER: 'mysql'
+            DB_HOST: 'mysql'
+            DB_USERNAME: '${DB_USERNAME}'
+            DB_PASSWORD: '${DB_PASSWORD}'
+            DB_NAME: '${DB_DATABASE}'
+        volumes:
+        # needs to be a bind mount instead of the default volume mount or
+        # docker will create a directory instead of mounting the single file
+            - type: bind
+              source: ./docker/dev/adminer/env-var-login.php
+              target: /var/www/html/plugins/env-var-login.php
+              read_only: true
+        networks:
+            - sail
+
     mysql:
         image: 'mariadb:10.11'
         ports:
@@ -49,6 +73,21 @@ services:
                 - '-p${DB_PASSWORD}'
             retries: 3
             timeout: 5s
+    redis:
+        image: 'redis:alpine'
+        ports:
+            - '${FORWARD_REDIS_PORT:-6379}:6379'
+        volumes:
+            - 'sail-redis:/data'
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - redis-cli
+                - ping
+            retries: 3
+            timeout: 5s
     mailpit:
         image: 'axllent/mailpit:latest'
         ports:
@@ -56,40 +95,12 @@ services:
             - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
         networks:
             - sail
-    selenium:
-        image: selenium/standalone-chrome
-        extra_hosts:
-            - 'host.docker.internal:host-gateway'
-        volumes:
-            - '/dev/shm:/dev/shm'
-        networks:
-            - sail
-    adminer:
-      image: "adminer:4"
-      ports:
-        - "${ADMINER_PORT}:8080"
-      depends_on:
-        - mysql
-      environment:
-        ADMINER_PLUGINS: 'env-var-login'
-        DB_DRIVER: 'mysql'
-        DB_HOST: 'mysql'
-        DB_USERNAME: '${DB_USERNAME}'
-        DB_PASSWORD: '${DB_PASSWORD}'
-        DB_NAME: '${DB_DATABASE}'
-      volumes:
-        # needs to be a bind mount instead of the default volume mount or
-        # docker will create a directory instead of mounting the single file
-        - type: bind
-          source: ./docker/dev/adminer/env-var-login.php
-          target: /var/www/html/plugins/env-var-login.php
-          read_only: true
-      networks:
-          - sail
 
 networks:
     sail:
         driver: bridge
 volumes:
     sail-mysql:
+        driver: local
+    sail-redis:
         driver: local

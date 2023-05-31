@@ -2,13 +2,16 @@ Start the development docker:
 
 (remember to update README)
 
-Make a copy of .env.example to .env, then bring up the docker compose:
+#Make a copy of .env.example to .env, then bring up the docker compose:
+Make a copy of ./env to .env, then bring up the docker compose:
 
-`./vendor/bin/sail up`
+`sudo ./vendor/bin/sail php artisan migrate`
+
+`sudo ./vendor/bin/sail up`
 
 Run the hot module replacement:
 
-`./vendor/bin/sail npm run dev`
+`sudo ./vendor/bin/sail npm run dev`
 
 Laravel Sail is just a frontend to docker compose, you can pass it commands to execute in the app container:
 
